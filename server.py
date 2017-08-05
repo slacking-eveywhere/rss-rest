@@ -5,7 +5,6 @@
 import sys
 import os
 import time
-import locale
 import asyncio
 import tornado.platform.asyncio
 import tornado.httpserver
@@ -15,6 +14,7 @@ from tornado.web import Application
 from routes import routes
 from crawler import crawl_rss_feed
 from bdd.bdd import create_tables
+from utils import change_locale
 
 
 class Server(Application):
@@ -43,7 +43,7 @@ def start_server(address='0.0.0.0', port=8888, static_path=os.path.join(os.path.
 
     tornado.platform.asyncio.AsyncIOMainLoop().install()
 
-    locale.setlocale(locale.LC_TIME, "fr_FR.utf8")
+    change_locale()
 
     application = Server(static_path, cookie_secret)
     http_server = tornado.httpserver.HTTPServer(application)

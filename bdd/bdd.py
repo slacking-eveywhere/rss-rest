@@ -12,7 +12,8 @@ CREDS = {
     "port": 3306,
     "user": 'rss_feed_user',
     "password": 'rss_feed',
-    "db": 'rss_feed'
+    "db": 'rss_feed',
+    "charset": 'utf8'
 }
 
 class Tables:
@@ -52,7 +53,7 @@ class RequestString:
 
 class QueryError(Exception):
     def __init__(self, excpt):
-        code, reason = excpt.args
+        code, *reason = excpt.args
         self.code = code
         self.reason = reason
 
@@ -113,6 +114,7 @@ async def query(sql, params=(), as_dic=False):
 def add_cond(sql, cond, old_params, add_params):
     return ("{} {}".format(sql, cond), old_params + add_params)
 
+
 def filter_by_id(sql, id):
     pass
 
@@ -140,7 +142,7 @@ Tables.add(
         `creation_date` DATETIME NOT NULL,
         `revoke_date` DATETIME NOT NULL,
         `socket` CHAR(36)
-        )
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1;
     """)).add(
     Table("projects", """
         CREATE TABLE projects (
@@ -154,11 +156,11 @@ Tables.add(
         CONSTRAINT `fk_user_id`
             FOREIGN KEY (create_by) REFERENCES users (id)
             ON UPDATE RESTRICT
-        )
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1;
     """)).add(
     Table("rss_links", """
     CREATE TABLE rss_links (
-    `ìd` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `name` VARCHAR(255),
     `link` VARCHAR(1024),
     `creation_date` DATETIME NOT NULL,
@@ -167,7 +169,35 @@ Tables.add(
     CONSTRAINT `fk_project_id`
         FOREIGN KEY (project_id) REFERENCES projects (id)
         ON UPDATE RESTRICT
-        ON DELETE CASCADE
-    )
+        ON DELETE CASCADE,
+    CONSTRAINT `fk_folder_id`
+        FOREIGN KEY (folder_id) REFERENCES folders (id)
+        ON UPDATE RESTRICT
+        ON DELETE RESTRICT
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1;
+    """)).add(
+    Table("folders", """
+    CREATE TABLE folders (
+    `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(255)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1;
+    """)).add(
+    Table("rss_content", """
+    CREATE TABLE rss_content (
+    `link` VARCHAR(1024),
+    `title` VARCHAR(255),
+    `summary` MEDIUMTEXT,
+    `published` DATETIME,
+    `is_readed` BOOLEAN DEFAULT FALSE,
+    `author` VARCHAR(255),
+    `hash` CHAR(64),
+    `rss_link_id` INT,
+    CONSTRAINT `fk_rss_link`
+        FOREIGN KEY (rss_link_id) REFERENCES rss_links (id)
+        ON UPDATE RESTRICT
+        ON DELETE CASCADE,
+    CONSTRAINT `hash_published_unique`
+        UNIQUE(published, hash)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1;
     """)
-    )
+)

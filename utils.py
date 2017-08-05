@@ -5,6 +5,7 @@
 import os
 import base64
 import time
+import locale
 import hashlib
 import asyncio
 from datetime import datetime, timedelta
@@ -30,6 +31,10 @@ def get_loop():
 
 def str_uuid():
     return str(uuid4())
+
+
+def change_locale(_locale="fr_FR.utf8"):
+    locale.setlocale(locale.LC_TIME, _locale)
 
 
 def timestamp():
@@ -63,6 +68,10 @@ def iso_to_date(iso):
 
 def get_datetime_plus_delta(minutes=260):
     return datetime.now() + timedelta(minutes=minutes)
+
+
+def sha_256(string):
+    return hashlib.sha256(string.encode()).hexdigest()
 
 
 def cookie_secret_generator():

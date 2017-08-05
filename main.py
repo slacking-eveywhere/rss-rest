@@ -2,20 +2,10 @@
 # -*-coding: utf-8-*-
 
 import tornado.web
-from tornado.httpclient import AsyncHTTPClient
 from routes import add_route
 from server import start_server
 from bdd.bdd import query, QueryError, RequestString
 from utils import hash_password, today
-
-
-class Root(tornado.web.RequestHandler):
-    async def get(self):
-        http_client = AsyncHTTPClient()
-        a = await http_client.fetch("http://google.fr")
-        print(a.body)
-        self.write("fzefez")
-        self.finish()
 
 
 class Project(tornado.web.RequestHandler):
@@ -125,7 +115,6 @@ class Users(tornado.web.RequestHandler):
             request.add_cond("ORDER BY %s", (sort_by,))
 
         sql, params = request.to_string()
-        print(sql, params)
 
         try:
             users = await list_assets("users", sql, params, self.format_user)
@@ -204,7 +193,7 @@ class Users(tornado.web.RequestHandler):
 
 class RssLinks(tornado.web.RequestHandler):
 
-    async def get(self, id=None, *args, **kwargs):
+    async def get(self, _id=None, *args, **kwargs):
         request = RequestString()
         request.add_cond("""
         SELECT id, name, link, creation_date, modification_date, project_id FROM rss_links
@@ -230,7 +219,8 @@ class RssLinks(tornado.web.RequestHandler):
         VALUES
         (%s, %s, %s, %s, %s)
         """
-        params = (name, link, today(), today(), project_id)
+
+        params = (name, link, today(), today(), int(project_id))
 
         try:
             cursor = await query(sql, params)
@@ -266,6 +256,53 @@ class RssLinks(tornado.web.RequestHandler):
         }
 
 
+class Folder(tornado.web.RequestHandler):
+
+    async def get(self):
+        pass
+
+    async def post(self, *args, **kwargs):
+        pass
+
+    async def put(self, *args, **kwargs):
+        pass
+
+    async def delete(self, *args, **kwargs):
+        pass
+
+
+class Feeds(tornado.web.RequestHandler):
+
+    async def get(self, rss_link_id=None):
+        if rss_link_id:
+            request = RequestString()
+            request.add_cond("""
+            SELECT title, link, summary, published, is_readed, author, hash FROM rss_content WHERE rss_link_id=%s 
+            """)
+
+            sql, params = request.to_string()
+
+            try:
+                feeds = await list_assets("feeds", sql, (int(rss_link_id),), self.format_feeds)
+                self.write(feeds)
+            except QueryError as e:
+                self.write({'errors': e.reason})
+            finally:
+                self.finish()
+
+    @staticmethod
+    def format_feeds(line):
+        title, link, summary, published, read, author, _hash = line
+        return {
+            'title': title,
+            'link': link,
+            'summary': summary,
+            'published': published.isoformat(),
+            'read': read,
+            'author': author,
+            'hash': _hash
+        }
+
 async def list_assets(_type, sql, params, format_func, *args):
     cursor = await query(sql, params)
     result = await cursor.fetchall()
@@ -278,6 +315,7 @@ add_route(r"/api/v1/users", Users)
 add_route(r"/api/v1/users/((?:\d*)?\d+)", Users)
 add_route(r"/api/v1/rss_links", RssLinks)
 add_route(r"/api/v1/rss_links/((?:\d*)?\d+)", RssLinks)
+add_route(r"/api/v1/rss_links/((?:\d*)?\d+)/feeds", Feeds)
 
 if __name__ == "__main__":
     cookie_secret = "GY213srYTE5EAYBvuDaEdcuhf954y3/cRi/O+WJ1vHLc1lSo7Zdl2ER3zKI5Oen9q/E="
